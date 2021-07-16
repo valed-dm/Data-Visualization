@@ -34,7 +34,7 @@
       height: 414px;
       margin: 15vh auto;
       border-radius: 4px;
-      background-color: Turquoise;
+      background-color: Lavender;
       box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.7);
     }
 
@@ -129,11 +129,10 @@
             d3.select("#tooltip").style('opacity', 0)
           })
           .on('mousemove', (event) => {
-            var coords = d3.pointer(event);
+           var coords = [event.pageX, event.pageY];
             d3.select("#tooltip")
-              .style("left", Math.floor(coords[0]) + 20 + "px")
-              .style("top", Math.floor(coords[1]) + 50 + "px")
-            /* console.log(coords[0], coords[1]) // log the mouse x,y position */
+              .style("left", coords[0] + 5 + "px")
+              .style("top", coords[1] - 50 + "px")
           });
         const xAxis = d3.axisBottom(xScale);
         svg.append("g")
