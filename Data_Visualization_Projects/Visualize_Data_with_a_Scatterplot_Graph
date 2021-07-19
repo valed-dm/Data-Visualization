@@ -37,10 +37,6 @@
       background-color: Lavender;
       box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.7);
     }
-
-    .bar:hover {
-      fill: DarkSlateGray;
-    }
   </style>
 </head>
 
@@ -100,19 +96,18 @@
           .append("svg")
           .style("width", W)
           .style("height", H)
-        svg.selectAll("circle")
+        svg.selectAll(".dot")
           .data(json)
           .enter()
           .append("circle")
+          .attr("class", "dot")
           .attr("cx", (d) => xScale(parserYear(d.Year)))
           .attr("cy", (d) => yScale(parserTime(d.Time)))
           .attr("r", 6)
           .attr("opacity", .8)
           .attr("fill", (d, i) => d.Doping.length == 0 ? "ForestGreen" : "Red")
-          .attr("class", "dot")
           .attr("data-xvalue", (d) => d.Year)
           .attr("data-yvalue", (d) => parserTime(d.Time))
-          /*tooltip engine----------------------------------------------------*/
           .on("mouseover", function(event, d) {
             d3.select("#tooltip")
               .style("opacity", .9)
@@ -128,18 +123,18 @@
               .style("left", coords[0] + "px")
               .style("top", coords[1] - 85 + "px")
           });
-        /*legend creating------------------------------------------------------*/
-        svg.selectAll("rect")
+        svg.selectAll(".legend")
           .data(legendCircle)
           .enter()
           .append("circle")
+          .attr("class", "legend")
           .attr("cx", 682)
           .attr("cy", (d, i) => 175 + i * 20)
           .attr("r", 6)
           .attr("fill", function(d, i) {
             return i == 0 ? "ForestGreen" : "Red"
           })
-        /*axes creating--------------------------------------------------------*/
+        /*making of axes---------------------------------------------------------*/
         const xAxis = d3.axisBottom(xScale);
         svg.append("g")
           .attr("transform", "translate(0," + (H - PADDING) + ")")
