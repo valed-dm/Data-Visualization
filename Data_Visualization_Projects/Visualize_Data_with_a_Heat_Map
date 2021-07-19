@@ -1,0 +1,189 @@
+<script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scatterplot Graph</title>
+  <style>
+    body {
+      background-color: LightCoral;
+    }
+
+    #tooltip {
+      position: absolute;
+      text-align: left;
+      width: auto;
+      height: auto;
+      padding: 5px;
+      font: 8px sans-serif;
+      background: DarkSlateGray;
+      color: white;
+      border: 0px;
+      border-radius: 3px;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    #my_chart {
+      display: block;
+      width: 1200px;
+      height: 750px;
+      margin: 15vh auto;
+      border-radius: 4px;
+      background-color: Lavender;
+      box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="tooltip">test phrase</div>
+  <svg id="my_chart">
+    <text x="50%" y=60 text-anchor="middle" font-style="italic" font-family="arial" font-size="16px" fill="navy" id="title">Monthly Global Land-Surface Temperature</text>
+    <text x="50%" y=80 text-anchor="middle" font-style="italic" font-family="arial" font-size="12px" fill="navy" id="description">1753 - 2015: base temperature 8.66℃</text>
+    <text x="50%" y=620 text-anchor="middle" font-style="italic" font-family="arial" font-size="10px" fill="navy" id="text_under_xAxis">REPORTING YEAR</text>
+    <text x="50%" y=700 text-anchor="middle" font-style="italic" font-family="arial" font-size="12px" fill="navy" id="sub_title">℃, (data provided in Celsius degree)</text>
+  </svg>
+
+  <script>
+    const W = 1200;
+    const H = 675;
+    const PADDING = 100;
+    let pYear = 0; /*this is for X-axis data adjustment (value given in years)*/
+    let parserMonth = d3.timeParse("%m");
+    let parserYear = d3.timeParse("%Y");
+    let dataset = [];
+    let legendDomain = [];
+    let legendBars = [];
+    const COLORS = ["RoyalBlue", "CornflowerBlue", "SkyBlue", "LightBlue", "PowderBlue", "LightCyan", "white", "PeachPuff", "LightSalmon", "Coral", "Tomato", "OrangeRed"];
+    const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    document.addEventListener('DOMContentLoaded', function() {
+      const req = new XMLHttpRequest();
+      req.open("GET", 'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json', true);
+      req.send();
+      req.onload = function() {
+        let jsonRequestAnswer = JSON.parse(req.responseText);
+        let baseTemperature = jsonRequestAnswer.baseTemperature;
+        /*data for xAxis---------------------------------------------------------*/
+        let inputObjectDataCopy = JSON.parse(JSON.stringify(jsonRequestAnswer));
+        let dataYear = inputObjectDataCopy.monthlyVariance.map((d) => d.year);
+        let minYear = parserYear(d3.min(dataYear) - pYear);
+        let maxYear = parserYear(d3.max(dataYear) + pYear);
+        /*data for yAxis---------------------------------------------------------*/
+        dataset = inputObjectDataCopy.monthlyVariance;
+        /*setting x,y scales-----------------------------------------------------*/
+        const xScale = d3.scaleTime()
+          .domain([new Date(minYear), new Date(maxYear)])
+          .range([PADDING, W - PADDING]);
+        const yScale = d3.scaleBand()
+          .domain([parserMonth(1), parserMonth(2), parserMonth(3), parserMonth(4), parserMonth(5), parserMonth(6), parserMonth(7), parserMonth(8), parserMonth(9), parserMonth(10), parserMonth(11), parserMonth(12)])
+          .range([PADDING, H - PADDING, ])
+          .paddingInner(0.05)
+        /*console.log(yScale.bandwidth());*/
+        /*Heat Map---------------------------------------------------------------*/
+        const svg = d3.select(document.getElementById("my_chart"))
+          .append("svg")
+          .style("width", W)
+          .style("height", H)
+        svg.selectAll(".cell")
+          .data(dataset)
+          .enter()
+          .append("rect")
+          .attr("class", "cell")
+          .attr("x", (d) => xScale(parserYear(d.year)))
+          .attr("y", (d) => yScale(parserMonth(d.month)))
+          .attr("width", (W - 2 * PADDING) * 12 / dataset.length)
+          .attr("height", yScale.bandwidth())
+          /*(d.month - 1) is set in accordance with user stories------------------*/
+          .attr("data-month", (d) => (d.month - 1))
+          /*----------------------------------------------------------------------*/
+          .attr("data-year", (d) => d.year)
+          .attr("data-temp", (d) => (d.variance + baseTemperature))
+          .attr("fill",
+            (d, i) => d.variance + baseTemperature < 3 ? "RoyalBlue" :
+            d.variance + baseTemperature >= 3 && d.variance + baseTemperature < 4 ? "CornflowerBlue" :
+            d.variance + baseTemperature >= 4 && d.variance + baseTemperature < 5 ? "SkyBlue" :
+            d.variance + baseTemperature >= 5 && d.variance + baseTemperature < 6 ? "LightBlue" :
+            d.variance + baseTemperature >= 6 && d.variance + baseTemperature < 7 ? "PowderBlue" :
+            d.variance + baseTemperature >= 7 && d.variance + baseTemperature < 8 ? "LightCyan" :
+            d.variance + baseTemperature >= 8 && d.variance + baseTemperature < 9 ? "white" :
+            d.variance + baseTemperature >= 9 && d.variance + baseTemperature < 10 ? "PeachPuff" :
+            d.variance + baseTemperature >= 10 && d.variance + baseTemperature < 11 ? "LightSalmon" :
+            d.variance + baseTemperature >= 11 && d.variance + baseTemperature < 12 ? "Coral" :
+            d.variance + baseTemperature >= 12 && d.variance + baseTemperature < 13 ? "Tomato" :
+            d.variance + baseTemperature >= 13 && d.variance + baseTemperature < 14 ? "OrangeRed" : "OrangeRed"
+          )
+          /*tooltip engine-------------------------------------------------------*/
+          .on("mouseover", function(event, d) {
+            d3.select("#tooltip")
+              .attr("data-year", d.year)
+              .style("opacity", .9)
+              .html("Year: " + d.year + " Month: " + MONTHS[d.month - 1] + "<br/>" + "T = " + (d.variance + baseTemperature).toFixed(2) + " ℃ " + "VAR: " + (d.variance).toFixed(2) + " ℃ ")
+          })
+          .on('mouseout', function() {
+            d3.select("#tooltip").style('opacity', 0)
+          })
+          .on('mousemove', (event) => {
+            var coords = [event.pageX, event.pageY];
+            d3.select("#tooltip")
+              .style("left", coords[0] - 85 + "px")
+              .style("top", coords[1] - 50 + "px")
+          });
+        /*axis generator---------------------------------------------------------*/
+        const xAxis = d3.axisBottom(xScale);
+        svg.append("g")
+          .attr("id", "x-axis")
+          .attr("transform", "translate(0," + (H - PADDING) + ")")
+          .call(xAxis);
+        const yAxis = d3.axisLeft(yScale)
+          .tickFormat((d) => d3.timeFormat("%B")(d))
+        svg.append("g")
+          .attr("id", "y-axis")
+          .attr("transform", "translate(" + PADDING + ", 0)")
+          .call(yAxis);
+        /*customizing axes-------------------------------------------------------*/
+        svg.selectAll(".domain")
+          .attr("stroke", "navy")
+          .attr("stroke-width", "2")
+          .attr("opacity", ".6");
+        svg.selectAll(".tick text")
+          .attr("fill", "navy")
+        /*searching for needed values to build a legend--------------------------*/
+        let variance = inputObjectDataCopy.monthlyVariance.map((d) => d.variance);
+        let minVariance = d3.min(variance, (d) => d);
+        let maxVariance = d3.max(variance, (d) => d);
+        for (let i = 0; i <= Math.round(maxVariance + baseTemperature) - Math.round(minVariance + baseTemperature); i++) {
+          legendDomain.push(Math.round(minVariance + baseTemperature) + i);
+        };
+        /*legend creating--------------------------------------------------------*/
+        legendBars = legendDomain.slice(0, legendDomain.length - 1);
+        let legendScale = d3.scaleBand()
+          .domain(legendDomain)
+          .range([4 * PADDING, W - 4 * PADDING])
+        const legendAxis = d3.axisBottom(legendScale)
+          .ticks(legendDomain.length)
+        svg.append("g")
+          .attr("transform", "translate(0, 665)")
+          .call(legendAxis)
+        svg.selectAll(".legendBars")
+          .data(legendBars)
+          .enter()
+          .append("g")
+          .attr("id", "legend")
+          .append("rect")
+          .attr("class", "legendBars")
+          .attr("x", (d) => legendScale(d) + legendScale.bandwidth() / 2)
+          .attr("y", 640)
+          .attr("width", legendScale.bandwidth())
+          .attr("height", 25)
+          .attr("fill", (d, i) => COLORS[i])
+      };
+    });
+  </script>
+</body>
+
+</html>
