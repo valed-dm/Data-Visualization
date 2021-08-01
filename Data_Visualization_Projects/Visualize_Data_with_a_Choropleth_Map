@@ -1,0 +1,238 @@
+<script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" type="text/css">
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3: Choropleth Map for United States Educational Attainment</title>
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+      background-color: DarkSeaGreen;
+    }
+
+    h3 {
+      margin-bottom: -25px;
+    }
+
+    .legendData {
+      font-style: italic;
+      opacity: .5
+    }
+
+    #legendData {
+      position: relative;
+      top: -15px;
+      left: 550px;
+      margin-bottom: -15px;
+      text-align: start;
+      font-size: .1em;
+    }
+
+    /*This is to make legend scale axis black and thin----------------------------------------------*/
+    path.domain {
+      stroke: black;
+      fill: none;
+    }
+
+    #container {
+      width: 950px;
+      height: 800px;
+      margin: 15vh auto;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: Lavender;
+      box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.7);
+      font-family: "Montserrat", "Arial";
+      text-align: center;
+    }
+
+    .county {
+      stroke: mistyrose;
+      stroke-width: .5px;
+    }
+
+    .stateBoundary {
+      fill: none;
+      stroke: mistyrose;
+      stroke-width: 1px;
+    }
+
+    .outerBoundary {
+      fill: none;
+      stroke: SeaGreen;
+      stroke-width: 1px;
+    }
+
+    .hover {
+      fill: darkgreen;
+    }
+
+    a {
+      text-decoration: none;
+      font-style: italic;
+      color: red;
+    }
+
+    /*Source text alignment in a right down corner----------------------------------------------------*/
+    #anchor_text {
+      text-align: right;
+      margin-right: 50px;
+    }
+
+    #tooltip {
+      position: absolute;
+      text-align: left;
+      width: auto;
+      height: auto;
+      padding: 5px;
+      font: 8px sans-serif;
+      background: DarkSlateGray;
+      color: white;
+      border: 0px;
+      border-radius: 3px;
+      pointer-events: none;
+      opacity: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="tooltip">test phrase</div>
+  <div id="container">
+    <h3 id="title">United States Educational Attainment</h3>
+    <h6 id="description">Percentage of adults age 25 and older with a bachelor's degree or higher (2010-2014)</h6>
+    <p id="legendData">Area: <span class="legendData">select a certain area</span><br />Data: <span class="legendData">bachelors or higher, %</span></p>
+    <div id="map"></div>
+    <h6 id="anchor_text">Source: <a href="https://www.ers.usda.gov/topics/rural-economy-population/employment-education/rural-education/" target="_blank">USDA Economic Research Service</a></h6>
+  </div>
+
+  <script>
+    const W = 950,
+      H = 600,
+      PADDING = 10,
+      usEduDS = 'https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json',
+      usCountyDS = 'https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json';
+    let USEDD = '',
+      USCOD = '',
+      countyEduIndex = '',
+      fips = [],
+      usStatePostalAbbreviations = [],
+      legendBars = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const svg = d3.select(document.getElementById("map"))
+      .append("svg")
+      .style("width", W)
+      .style("height", H);
+    const geoGenerator = d3.geoPath();
+    /*First AJAX data request---------------------------------------------------------------------------*/
+    document.addEventListener('DOMContentLoaded', function() {
+      const usEduData = new XMLHttpRequest();
+      usEduData.open("GET", usEduDS, true);
+      usEduData.send();
+      usEduData.onload = function() {
+        USEDD = JSON.parse(usEduData.responseText);
+        fips = USEDD.map((d) => d.fips);
+        /*usStatePostalAbbreviations = [...new Set(USEDD.map((d) => d.state))].sort();*/
+        /*Second AJAX data request----------------------------------------------------------------------*/
+        const usCountyData = new XMLHttpRequest;
+        usCountyData.open("GET", usCountyDS, true);
+        usCountyData.send();
+        usCountyData.onload = function() {
+          USCOD = JSON.parse(usCountyData.responseText);
+          let counties = topojson.feature(USCOD, USCOD.objects.counties);
+          /*Map is being drawn here---------------------------------------------------------------------*/
+          svg.append("g")
+            .selectAll("path")
+            .data(counties.features)
+            .enter()
+            .append("path")
+            .attr("d", geoGenerator)
+            /*This assigns a class to each county which is equal to a state name (".NV") and ".county"--*/
+            .attr("class", (d) => USEDD[fips.indexOf(d.id)].state + " county")
+            /*This assigns props to each county in accordance with input data---------------------------*/
+            .attr("data-fips", (d) => USEDD[fips.indexOf(d.id)].fips)
+            .attr("data-education", (d) => USEDD[fips.indexOf(d.id)].bachelorsOrHigher)
+            /*This colors the map-----------------------------------------------------------------------*/
+            .attr("fill", function(d) {
+              countyEduIndex = USEDD[fips.indexOf(d.id)].bachelorsOrHigher;
+              return (countyEduIndex < 10 ? "hsl(100, 10%, 50%)" :
+                countyEduIndex >= 10 && countyEduIndex < 20 ? "hsl(100, 20%, 50%)" :
+                countyEduIndex >= 20 && countyEduIndex < 30 ? "hsl(100, 30%, 50%)" :
+                countyEduIndex >= 30 && countyEduIndex < 40 ? "hsl(100, 40%, 50%)" :
+                countyEduIndex >= 40 && countyEduIndex < 50 ? "hsl(100, 50%, 50%)" :
+                countyEduIndex >= 50 && countyEduIndex < 60 ? "hsl(100, 60%, 50%)" :
+                countyEduIndex >= 60 && countyEduIndex < 70 ? "hsl(100, 70%, 50%)" :
+                countyEduIndex >= 70 && countyEduIndex < 80 ? "hsl(100, 80%, 50%)" :
+                countyEduIndex >= 80 && countyEduIndex < 90 ? "hsl(100, 90%, 50%)" :
+                countyEduIndex >= 90 && countyEduIndex < 100 ? "hsl(100, 100%, 50%)" : "hsl(100, 100%, 50%)")
+            })
+            /*Code below makes the map interactive------------------------------------------------------*/
+            .on("mouseover", function(object_mouseEvent, d) {
+              d3.select("#legendData").html("Area: " + USEDD[fips.indexOf(d.id)].area_name + ", " + USEDD[fips.indexOf(d.id)].state + "<br/>" + "Data: " + USEDD[fips.indexOf(d.id)].bachelorsOrHigher + "%");
+              d3.select(this).attr("class", "county hover");
+              d3.select("#tooltip")
+                .attr("data-education", USEDD[fips.indexOf(d.id)].bachelorsOrHigher)
+                .style("opacity", .7)
+                .html("Area: " + USEDD[fips.indexOf(d.id)].area_name + ", " + USEDD[fips.indexOf(d.id)].state + "<br/>" + "Data: " + USEDD[fips.indexOf(d.id)].bachelorsOrHigher + "%")
+            })
+            .on("mouseout", function() {
+              d3.select("#legendData").html('Area: <span class="legendData">select a certain area</span><br/>Data: <span class="legendData">bachelors or higher, %</span>')
+              d3.select(this).attr("class", "county");
+              d3.select("#tooltip").style('opacity', 0);
+            })
+            /*This code provides coordinates for floating tooltip--------------------------------------*/
+            .on('mousemove', (event) => {
+              var coords = [event.pageX, event.pageY];
+              d3.select("#tooltip")
+                .style("left", coords[0] - 85 + "px")
+                .style("top", coords[1] - 50 + "px")
+            });
+          /*This code draws an outer boundary of the map href="https://bost.ocks.org/mike/map/"--------*/
+          svg.append("path")
+            .datum(topojson.mesh(USCOD, USCOD.objects.states, function(a, b) {
+              return a === b;
+            }))
+            .attr("class", "outerBoundary")
+            .attr("d", geoGenerator);
+          /*This code draws boundaries between all the states*/
+          /*href="https://mechanicalscribe.com/notes/topojson-mesh-vs-merge/index.html"----------------*/
+          svg.append("path")
+            .datum(topojson.mesh(USCOD, USCOD.objects.counties, function(a, b) {
+              return a.id - a.id % 1000 !== b.id - b.id % 1000;
+            }))
+            .attr("class", "stateBoundary")
+            .attr("d", geoGenerator);
+          /*Legend making------------------------------------------------------------------------------*/
+          let legendScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([550, 850])
+          let legendAxis = d3.axisBottom(legendScale)
+            .tickFormat((d) => d + "%")
+          svg.append("g")
+            .attr("transform", "translate(0, 25)")
+            .call(legendAxis)
+          svg.selectAll(".legendBars")
+            .data(legendBars)
+            .enter()
+            .append("g")
+            .attr("id", "legend")
+            .append("rect")
+            .attr("class", "legendBars")
+            .attr("x", (d, i) => 550 + 30 * i)
+            .attr("y", 10)
+            .attr("width", 30)
+            .attr("height", 15)
+            .attr("fill", (d, i) => "hsl(100," + d + "%, 50%)")
+        };
+      };
+    });
+  </script>
+</body>
+
+</html>
